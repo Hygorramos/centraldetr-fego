@@ -1,333 +1,311 @@
-import React, { useState, useEffect, useMemo } from "react";
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central de Tráfego</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
 
-// ---------- Helpers ----------
-const fmtBRL = (n) =>
-  isFinite(n)
-    ? n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 })
-    : "—";
-const fmtNum = (n, d = 2) => (isFinite(n) ? n.toLocaleString("pt-BR", { maximumFractionDigits: d, minimumFractionDigits: 0 }) : "—");
-const pct = (n, d = 2) => (isFinite(n) ? `${n.toLocaleString("pt-BR", { maximumFractionDigits: d })}%` : "—");
-const num = (v) => {
-  const x = parseFloat(String(v).replace(/\./g, "").replace(",", "."));
-  return isNaN(x) ? 0 : x;
-};
+    <div id="root"></div>
 
-const NICHOS = {
-  odonto: { label: "Odontologia / Saúde", margem: 70, ctrBom: 1.5, convBom: 8 },
-  info: { label: "Infoproduto / Curso", margem: 90, ctrBom: 2, convBom: 3 },
-  ecom: { label: "E-commerce / Produto", margem: 35, ctrBom: 1.2, convBom: 2 },
-  servico: { label: "Serviço local / Lead", margem: 60, ctrBom: 1.5, convBom: 10 },
-};
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
 
-export default function App() {
-  const [nicho, setNicho] = useState("odonto");
-  const [d, setD] = useState({
-    investimento: "300",
-    faturamento: "1500",
-    impressoes: "45000",
-    cliques: "900",
-    conversoes: "8",
-    margem: "70",
-  });
-  const [escala, setEscala] = useState(0); // % de aumento de orçamento
-  const [clock, setClock] = useState(new Date());
-  const [ia, setIa] = useState({ loading: false, text: "", err: "" });
+        // ---------- Helpers ----------
+        const fmtBRL = (n) =>
+          isFinite(n) ? n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 }) : "—";
+        const fmtNum = (n, d = 2) => (isFinite(n) ? n.toLocaleString("pt-BR", { maximumFractionDigits: d, minimumFractionDigits: 0 }) : "—");
+        const pct = (n, d = 2) => (isFinite(n) ? `${n.toLocaleString("pt-BR", { maximumFractionDigits: d })}%` : "—");
+        const num = (v) => {
+          const x = parseFloat(String(v).replace(/\./g, "").replace(",", "."));
+          return isNaN(x) ? 0 : x;
+        };
 
-  // relógio ao vivo (sensação de tempo real)
-  useEffect(() => {
-    const t = setInterval(() => setClock(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
+        const NICHOS = {
+          odonto: { label: "Odontologia / Saúde", margem: 70, ctrBom: 1.5, convBom: 8 },
+          info: { label: "Infoproduto / Curso", margem: 90, ctrBom: 2, convBom: 3 },
+          ecom: { label: "E-commerce / Produto", margem: 35, ctrBom: 1.2, convBom: 2 },
+          servico: { label: "Serviço local / Lead", margem: 60, ctrBom: 1.5, convBom: 10 },
+        };
 
-  // ao trocar nicho, sugere a margem padrão
-  useEffect(() => {
-    setD((p) => ({ ...p, margem: String(NICHOS[nicho].margem) }));
-  }, [nicho]);
+        function App() {
+          const [nicho, setNicho] = useState("odonto");
+          const [d, setD] = useState({
+            investimento: "300",
+            faturamento: "1500",
+            impressoes: "45000",
+            cliques: "900",
+            conversoes: "8",
+            margem: "70",
+          });
+          const [escala, setEscala] = useState(0); 
+          const [clock, setClock] = useState(new Date());
+          const [ia, setIa] = useState({ loading: false, text: "", err: "" });
 
-  const set = (k) => (e) => setD((p) => ({ ...p, [k]: e.target.value }));
+          useEffect(() => {
+            const t = setInterval(() => setClock(new Date()), 1000);
+            return () => clearInterval(t);
+          }, []);
 
-  const m = useMemo(() => {
-    const inv = num(d.investimento);
-    const fat = num(d.faturamento);
-    const imp = num(d.impressoes);
-    const cli = num(d.cliques);
-    const conv = num(d.conversoes);
-    const margem = num(d.margem) / 100;
+          useEffect(() => {
+            setD((p) => ({ ...p, margem: String(NICHOS[nicho].margem) }));
+          }, [nicho]);
 
-    const ctr = (cli / imp) * 100;
-    const cpc = inv / cli;
-    const cpm = (inv / imp) * 1000;
-    const txConv = (conv / cli) * 100;
-    const cpa = inv / conv;
-    const roas = fat / inv;
-    const roi = ((fat - inv) / inv) * 100;
-    const ticket = fat / conv;
-    const lucro = fat * margem - inv; // lucro real considerando margem de contribuição
-    const roasEquilibrio = 1 / margem; // ROAS mínimo pra empatar
-    const margemLiq = (lucro / fat) * 100;
+          const set = (k) => (e) => setD((p) => ({ ...p, [k]: e.target.value }));
 
-    return { inv, fat, imp, cli, conv, margem, ctr, cpc, cpm, txConv, cpa, roas, roi, ticket, lucro, roasEquilibrio, margemLiq };
-  }, [d]);
+          const m = useMemo(() => {
+            const inv = num(d.investimento);
+            const fat = num(d.faturamento);
+            const imp = num(d.impressoes);
+            const cli = num(d.cliques);
+            const conv = num(d.conversoes);
+            const margem = num(d.margem) / 100;
 
-  // Diagnóstico (semáforo)
-  const diag = useMemo(() => {
-    const b = NICHOS[nicho];
-    const out = [];
-    // Lucro
-    if (m.roas >= m.roasEquilibrio * 1.2) out.push(["ok", "Lucrativa", `ROAS ${fmtNum(m.roas)}x acima do ponto de equilíbrio (${fmtNum(m.roasEquilibrio)}x). Pode escalar.`]);
-    else if (m.roas >= m.roasEquilibrio) out.push(["warn", "Empatando", `ROAS perto do equilíbrio (${fmtNum(m.roasEquilibrio)}x). Otimize antes de escalar.`]);
-    else out.push(["bad", "No prejuízo", `ROAS abaixo de ${fmtNum(m.roasEquilibrio)}x necessários pra empatar. Revise oferta/segmentação.`]);
-    // CTR
-    if (m.ctr >= b.ctrBom) out.push(["ok", "Criativo atraindo", `CTR ${pct(m.ctr)} (meta ≥ ${b.ctrBom}%). O anúncio prende atenção.`]);
-    else out.push(["warn", "Criativo fraco", `CTR ${pct(m.ctr)} abaixo de ${b.ctrBom}%. Teste novos criativos/ganchos.`]);
-    // Conversão
-    if (m.txConv >= b.convBom) out.push(["ok", "Página convertendo", `Taxa de conversão ${pct(m.txConv)} (meta ≥ ${b.convBom}%).`]);
-    else out.push(["warn", "Conversão baixa", `Taxa ${pct(m.txConv)} abaixo de ${b.convBom}%. Gargalo está na página/oferta, não no anúncio.`]);
-    return out;
-  }, [m, nicho]);
+            const ctr = (cli / imp) * 100;
+            const cpc = inv / cli;
+            const cpm = (inv / imp) * 1000;
+            const txConv = (conv / cli) * 100;
+            const cpa = inv / conv;
+            const roas = fat / inv;
+            const roi = ((fat - inv) / inv) * 100;
+            const ticket = fat / conv;
+            const lucro = fat * margem - inv; 
+            const roasEquilibrio = 1 / margem; 
+            const margemLiq = (lucro / fat) * 100;
 
-  // Simulação de escala
-  const sim = useMemo(() => {
-    const fator = 1 + escala / 100;
-    const invN = m.inv * fator;
-    // assume leve perda de eficiência ao escalar: CPA sobe ~ metade do % de escala
-    const cpaN = m.cpa * (1 + (escala / 100) * 0.5);
-    const convN = invN / cpaN;
-    const fatN = convN * m.ticket;
-    const lucroN = fatN * m.margem - invN;
-    return { invN, convN, fatN, lucroN, cpaN };
-  }, [escala, m]);
+            return { inv, fat, imp, cli, conv, margem, ctr, cpc, cpm, txConv, cpa, roas, roi, ticket, lucro, roasEquilibrio, margemLiq };
+          }, [d]);
 
-  async function analisarIA() {
-    setIa({ loading: true, text: "", err: "" });
-    const resumo = `
-Nicho: ${NICHOS[nicho].label}
-Investimento: ${fmtBRL(m.inv)}
-Faturamento: ${fmtBRL(m.fat)}
-Vendas/conversões: ${m.conv}
-Ticket médio: ${fmtBRL(m.ticket)}
-ROAS: ${fmtNum(m.roas)}x (equilíbrio em ${fmtNum(m.roasEquilibrio)}x)
-ROI: ${pct(m.roi)}
-Lucro real: ${fmtBRL(m.lucro)}
-CPA: ${fmtBRL(m.cpa)} | CPC: ${fmtBRL(m.cpc)} | CPM: ${fmtBRL(m.cpm)}
-CTR: ${pct(m.ctr)} | Taxa de conversão: ${pct(m.txConv)}
-Margem de contribuição: ${pct(num(d.margem))}`;
+          const diag = useMemo(() => {
+            const b = NICHOS[nicho];
+            const out = [];
+            if (m.roas >= m.roasEquilibrio * 1.2) out.push(["ok", "Lucrativa", `ROAS ${fmtNum(m.roas)}x acima do ponto de equilíbrio (${fmtNum(m.roasEquilibrio)}x). Pode escalar.`]);
+            else if (m.roas >= m.roasEquilibrio) out.push(["warn", "Empatando", `ROAS perto do equilíbrio (${fmtNum(m.roasEquilibrio)}x). Otimize antes de escalar.`]);
+            else out.push(["bad", "No prejuízo", `ROAS abaixo de ${fmtNum(m.roasEquilibrio)}x necessários pra empatar. Revise oferta/segmentação.`]);
+            
+            if (m.ctr >= b.ctrBom) out.push(["ok", "Criativo atraindo", `CTR ${pct(m.ctr)} (meta ≥ ${b.ctrBom}%). O anúncio prende atenção.`]);
+            else out.push(["warn", "Criativo fraco", `CTR ${pct(m.ctr)} abaixo de ${b.ctrBom}%. Teste novos criativos/ganchos.`]);
+            
+            if (m.txConv >= b.convBom) out.push(["ok", "Página convertendo", `Taxa de conversão ${pct(m.txConv)} (meta ≥ ${b.convBom}%).`]);
+            else out.push(["warn", "Conversão baixa", `Taxa ${pct(m.txConv)} abaixo de ${b.convBom}%. Gargalo está na página/oferta, não no anúncio.`]);
+            return out;
+          }, [m, nicho]);
 
-    try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [
-            {
-              role: "user",
-              content: `Você é um especialista sênior em tráfego pago (Meta Ads / Google Ads) falando direto e sem enrolação, em português do Brasil. Analise os números desta campanha e responda em no máximo 5 tópicos curtos: (1) diagnóstico em 1 frase, (2) o maior gargalo, (3) 2 ações práticas pra fazer hoje, (4) se deve escalar, manter ou pausar, (5) um alerta. Sem introdução, sem despedida. Dados:\n${resumo}`,
-            },
-          ],
-        }),
-      });
-      const data = await res.json();
-      const text = (data.content || []).filter((i) => i.type === "text").map((i) => i.text).join("\n").trim();
-      setIa({ loading: false, text: text || "Não consegui gerar a análise agora. Tente de novo.", err: "" });
-    } catch (e) {
-      setIa({ loading: false, text: "", err: "Falha ao conectar com a IA. Tente novamente em instantes." });
-    }
-  }
+          const sim = useMemo(() => {
+            const fator = 1 + escala / 100;
+            const invN = m.inv * fator;
+            const cpaN = m.cpa * (1 + (escala / 100) * 0.5);
+            const convN = invN / cpaN;
+            const fatN = convN * m.ticket;
+            const lucroN = fatN * m.margem - invN;
+            return { invN, convN, fatN, lucroN, cpaN };
+          }, [escala, m]);
 
-  const statusGlobal = m.lucro > 0 ? "LUCRO" : m.lucro === 0 ? "NEUTRO" : "PREJUÍZO";
-  const statusCor = m.lucro > 0 ? "var(--green)" : m.lucro < 0 ? "var(--red)" : "var(--amber)";
+          async function analisarIA() {
+            setIa({ loading: true, text: "", err: "" });
+            const resumo = `Nicho: ${NICHOS[nicho].label} | Investimento: ${fmtBRL(m.inv)} | Faturamento: ${fmtBRL(m.fat)} | Vendas: ${m.conv} | ROAS: ${fmtNum(m.roas)}x | Lucro real: ${fmtBRL(m.lucro)} | CTR: ${pct(m.ctr)} | Tx. Conversão: ${pct(m.txConv)}`;
 
-  return (
-    <div className="wrap">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        :root{
-          --bg:#070a0c; --panel:#0e1418; --panel2:#121a1f; --line:#1d272e;
-          --txt:#e7eef0; --muted:#7e8d93; --green:#34d399; --amber:#fbbf24; --red:#f87171; --accent:#34d399;
-        }
-        .wrap{
-          font-family:'Manrope',sans-serif; background:var(--bg); color:var(--txt);
-          min-height:100vh; padding:22px; position:relative; overflow-x:hidden;
-          background-image:
-            radial-gradient(circle at 15% 0%, rgba(52,211,153,.08), transparent 40%),
-            radial-gradient(circle at 100% 100%, rgba(52,211,153,.05), transparent 45%),
-            linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
-          background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
-        }
-        .mono{ font-family:'JetBrains Mono',monospace; }
-        .arch{ font-family:'Archivo',sans-serif; }
-        .top{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin-bottom:22px; border-bottom:1px solid var(--line); padding-bottom:18px;}
-        .brand{ display:flex; align-items:center; gap:12px;}
-        .dot{ width:11px; height:11px; border-radius:50%; background:var(--green); box-shadow:0 0 14px var(--green); animation:pulse 1.6s infinite;}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-        h1{ font-family:'Archivo'; font-weight:900; font-size:23px; letter-spacing:-.5px; text-transform:uppercase;}
-        h1 span{ color:var(--accent);}
-        .sub{ color:var(--muted); font-size:12px; letter-spacing:.5px;}
-        .clock{ text-align:right;}
-        .clock .t{ font-family:'JetBrains Mono'; font-size:20px; font-weight:700; color:var(--accent);}
-        .clock .d{ color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:1px;}
-        .statusbadge{ display:inline-flex; align-items:center; gap:7px; padding:7px 13px; border-radius:8px; font-family:'Archivo'; font-weight:700; font-size:12px; letter-spacing:1px; border:1px solid;}
-        .grid{ display:grid; gap:14px;}
-        .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px;}
-        .ptitle{ font-family:'Archivo'; font-weight:700; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:14px; display:flex; align-items:center; gap:8px;}
-        .ptitle::before{ content:''; width:14px; height:2px; background:var(--accent);}
-        .inputs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px;}
-        .field label{ display:block; font-size:11px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px;}
-        .field input{ width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--txt); padding:11px 12px; border-radius:9px; font-family:'JetBrains Mono'; font-size:15px; font-weight:700; transition:.15s;}
-        .field input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(52,211,153,.12);}
-        .selectrow{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
-        .chip{ padding:8px 14px; border-radius:8px; border:1px solid var(--line); background:var(--panel2); color:var(--muted); font-size:12px; font-weight:600; cursor:pointer; transition:.15s;}
-        .chip.on{ background:var(--accent); color:#06120c; border-color:var(--accent); font-weight:700;}
-        .bigcards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px;}
-        .big{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; position:relative; overflow:hidden;}
-        .big .k{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px;}
-        .big .v{ font-family:'JetBrains Mono'; font-weight:700; font-size:30px; margin-top:8px; line-height:1;}
-        .big .sub2{ font-size:11px; color:var(--muted); margin-top:6px;}
-        .big::after{ content:''; position:absolute; top:0; left:0; width:100%; height:3px;}
-        .mini{ display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:1px; background:var(--line); border-radius:12px; overflow:hidden;}
-        .mcell{ background:var(--panel); padding:14px;}
-        .mcell .k{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;}
-        .mcell .v{ font-family:'JetBrains Mono'; font-weight:700; font-size:18px; margin-top:5px;}
-        .diagrow{ display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px solid var(--line);}
-        .diagrow:last-child{ border-bottom:none;}
-        .led{ width:10px; height:10px; border-radius:50%; margin-top:5px; flex:none;}
-        .diagrow .tt{ font-family:'Archivo'; font-weight:700; font-size:14px;}
-        .diagrow .dd{ font-size:12.5px; color:var(--muted); margin-top:2px; line-height:1.45;}
-        .slider{ width:100%; -webkit-appearance:none; height:6px; border-radius:6px; background:var(--line); margin:14px 0; outline:none;}
-        .slider::-webkit-slider-thumb{ -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 0 10px rgba(52,211,153,.6);}
-        .simgrid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;}
-        .simbox{ background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:14px;}
-        .simbox .k{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;}
-        .simbox .v{ font-family:'JetBrains Mono'; font-weight:700; font-size:19px; margin-top:5px;}
-        .btn{ width:100%; background:var(--accent); color:#06120c; border:none; padding:14px; border-radius:10px; font-family:'Archivo'; font-weight:900; font-size:14px; letter-spacing:.5px; cursor:pointer; text-transform:uppercase; transition:.15s;}
-        .btn:hover{ filter:brightness(1.08);}
-        .btn:disabled{ opacity:.55; cursor:wait;}
-        .iabox{ margin-top:14px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:16px; white-space:pre-wrap; font-size:13.5px; line-height:1.6; color:var(--txt);}
-        .iaerr{ color:var(--red); font-size:13px; margin-top:10px;}
-        .note{ font-size:11.5px; color:var(--muted); margin-top:12px; line-height:1.5;}
-        .cols{ display:grid; grid-template-columns:1fr 1fr; gap:14px;}
-        @media(max-width:760px){ .cols{ grid-template-columns:1fr;} .simgrid{ grid-template-columns:1fr;} }
-      `}</style>
+            try {
+              // Ajustado para uma rota genérica ou aviso, já que a chave de API não deve ficar exposta no HTML público
+              setIa({ loading: false, text: "Para rodar a inteligência artificial com segurança em um site público sem vazar sua chave de API, recomendo integrar através de uma Serverless Function na Vercel. Mas todos os cálculos locais e simuladores acima já estão 100% operacionais!", err: "" });
+            } catch (e) {
+              setIa({ loading: false, text: "", err: "Falha ao conectar com a IA." });
+            }
+          }
 
-      <div className="top">
-        <div className="brand">
-          <div className="dot" />
-          <div>
-            <h1>Central de <span>Tráfego</span></h1>
-            <div className="sub">PAINEL DE PERFORMANCE EM TEMPO REAL</div>
-          </div>
-        </div>
-        <div className="clock">
-          <div className="t mono">{clock.toLocaleTimeString("pt-BR")}</div>
-          <div className="d">{clock.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}</div>
-        </div>
-      </div>
+          const statusGlobal = m.lucro > 0 ? "LUCRO" : m.lucro === 0 ? "NEUTRO" : "PREJUÍZO";
+          const statusCor = m.lucro > 0 ? "var(--green)" : m.lucro < 0 ? "var(--red)" : "var(--amber)";
 
-      <div className="grid">
-        {/* INPUTS */}
-        <div className="panel">
-          <div className="ptitle">Dados da campanha</div>
-          <div className="selectrow">
-            {Object.entries(NICHOS).map(([k, v]) => (
-              <div key={k} className={`chip ${nicho === k ? "on" : ""}`} onClick={() => setNicho(k)}>{v.label}</div>
-            ))}
-          </div>
-          <div className="inputs">
-            <div className="field"><label>Investimento (R$)</label><input value={d.investimento} onChange={set("investimento")} inputMode="decimal" /></div>
-            <div className="field"><label>Faturamento (R$)</label><input value={d.faturamento} onChange={set("faturamento")} inputMode="decimal" /></div>
-            <div className="field"><label>Impressões</label><input value={d.impressoes} onChange={set("impressoes")} inputMode="decimal" /></div>
-            <div className="field"><label>Cliques</label><input value={d.cliques} onChange={set("cliques")} inputMode="decimal" /></div>
-            <div className="field"><label>Vendas / Conversões</label><input value={d.conversoes} onChange={set("conversoes")} inputMode="decimal" /></div>
-            <div className="field"><label>Margem de contrib. (%)</label><input value={d.margem} onChange={set("margem")} inputMode="decimal" /></div>
-          </div>
-        </div>
+          return (
+            <div className="wrap">
+              <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                :root{
+                  --bg:#070a0c; --panel:#0e1418; --panel2:#121a1f; --line:#1d272e;
+                  --txt:#e7eef0; --muted:#7e8d93; --green:#34d399; --amber:#fbbf24; --red:#f87171; --accent:#34d399;
+                }
+                .wrap{
+                  font-family:'Manrope',sans-serif; background:var(--bg); color:var(--txt);
+                  min-height:100vh; padding:22px; position:relative; overflow-x:hidden;
+                  background-image:
+                    radial-gradient(circle at 15% 0%, rgba(52,211,153,.08), transparent 40%),
+                    radial-gradient(circle at 100% 100%, rgba(52,211,153,.05), transparent 45%),
+                    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+                  background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+                }
+                .mono{ font-family:'JetBrains Mono',monospace; }
+                .arch{ font-family:'Archivo',sans-serif; }
+                .top{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin-bottom:22px; border-bottom:1px solid var(--line); padding-bottom:18px;}
+                .brand{ display:flex; align-items:center; gap:12px;}
+                .dot{ width:11px; height:11px; border-radius:50%; background:var(--green); box-shadow:0 0 14px var(--green); animation:pulse 1.6s infinite;}
+                @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+                h1{ font-family:'Archivo'; font-weight:900; font-size:23px; letter-spacing:-.5px; text-transform:uppercase;}
+                h1 span{ color:var(--accent);}
+                .sub{ color:var(--muted); font-size:12px; letter-spacing:.5px;}
+                .clock{ text-align:right;}
+                .clock .t{ font-family:'JetBrains Mono'; font-size:20px; font-weight:700; color:var(--accent);}
+                .clock .d{ color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:1px;}
+                .grid{ display:grid; gap:14px;}
+                .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px;}
+                .ptitle{ font-family:'Archivo'; font-weight:700; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:14px; display:flex; align-items:center; gap:8px;}
+                .ptitle::before{ content:''; width:14px; height:2px; background:var(--accent);}
+                .inputs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px;}
+                .field label{ display:block; font-size:11px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px;}
+                .field input{ width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--txt); padding:11px 12px; border-radius:9px; font-family:'JetBrains Mono'; font-size:15px; font-weight:700; transition:.15s;}
+                .field input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(52,211,153,.12);}
+                .selectrow{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
+                .chip{ padding:8px 14px; border-radius:8px; border:1px solid var(--line); background:var(--panel2); color:var(--muted); font-size:12px; font-weight:600; cursor:pointer; transition:.15s;}
+                .chip.on{ background:var(--accent); color:#06120c; border-color:var(--accent); font-weight:700;}
+                .bigcards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px;}
+                .big{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; position:relative; overflow:hidden;}
+                .big .k{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px;}
+                .big .v{ font-family:'JetBrains Mono'; font-weight:700; font-size:30px; margin-top:8px; line-height:1;}
+                .big .sub2{ font-size:11px; color:var(--muted); margin-top:6px;}
+                .mini{ display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:1px; background:var(--line); border-radius:12px; overflow:hidden;}
+                .mcell{ background:var(--panel); padding:14px;}
+                .mcell .k{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;}
+                .mcell .v{ font-family:'JetBrains Mono'; font-weight:700; font-size:18px; margin-top:5px;}
+                .diagrow{ display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px solid var(--line);}
+                .diagrow:last-child{ border-bottom:none;}
+                .led{ width:10px; height:10px; border-radius:50%; margin-top:5px; flex:none;}
+                .diagrow .tt{ font-family:'Archivo'; font-weight:700; font-size:14px;}
+                .diagrow .dd{ font-size:12.5px; color:var(--muted); margin-top:2px; line-height:1.45;}
+                .slider{ width:100%; -webkit-appearance:none; height:6px; border-radius:6px; background:var(--line); margin:14px 0; outline:none;}
+                .slider::-webkit-slider-thumb{ -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 0 10px rgba(52,211,153,.6);}
+                .simgrid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;}
+                .simbox{ background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:14px;}
+                .simbox .k{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;}
+                .simbox .v{ font-family:'JetBrains Mono'; font-weight:700; font-size:19px; margin-top:5px;}
+                .btn{ width:100%; background:var(--accent); color:#06120c; border:none; padding:14px; border-radius:10px; font-family:'Archivo'; font-weight:900; font-size:14px; letter-spacing:.5px; cursor:pointer; text-transform:uppercase; transition:.15s;}
+                .btn:hover{ filter:brightness(1.08);}
+                .btn:disabled{ opacity:.55; cursor:wait;}
+                .iabox{ margin-top:14px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:16px; white-space:pre-wrap; font-size:13.5px; line-height:1.6; color:var(--txt);}
+                .iaerr{ color:var(--red); font-size:13px; margin-top:10px;}
+                .note{ font-size:11.5px; color:var(--muted); margin-top:12px; line-height:1.5;}
+                .cols{ display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+                @media(max-width:760px){ .cols{ grid-template-columns:1fr;} .simgrid{ grid-template-columns:1fr;} }
+              `}</style>
 
-        {/* BIG METRICS */}
-        <div className="bigcards">
-          <div className="big">
-            <div className="k">ROAS</div>
-            <div className="v" style={{ color: m.roas >= m.roasEquilibrio ? "var(--green)" : "var(--red)" }}>{fmtNum(m.roas)}x</div>
-            <div className="sub2">Equilíbrio: {fmtNum(m.roasEquilibrio)}x</div>
-            <span style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: m.roas >= m.roasEquilibrio ? "var(--green)" : "var(--red)" }} />
-          </div>
-          <div className="big">
-            <div className="k">ROI</div>
-            <div className="v" style={{ color: m.roi >= 0 ? "var(--green)" : "var(--red)" }}>{pct(m.roi, 0)}</div>
-            <div className="sub2">Retorno sobre investimento</div>
-            <span style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: m.roi >= 0 ? "var(--green)" : "var(--red)" }} />
-          </div>
-          <div className="big">
-            <div className="k">Lucro real</div>
-            <div className="v" style={{ color: statusCor }}>{fmtBRL(m.lucro)}</div>
-            <div className="sub2">Já com margem aplicada</div>
-            <span style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: statusCor }} />
-          </div>
-          <div className="big">
-            <div className="k">CPA (custo/venda)</div>
-            <div className="v">{fmtBRL(m.cpa)}</div>
-            <div className="sub2">Ticket médio: {fmtBRL(m.ticket)}</div>
-            <span style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: "var(--accent)" }} />
-          </div>
-        </div>
-
-        {/* MINI METRICS */}
-        <div className="mini">
-          <div className="mcell"><div className="k">CTR</div><div className="v">{pct(m.ctr)}</div></div>
-          <div className="mcell"><div className="k">CPC</div><div className="v">{fmtBRL(m.cpc)}</div></div>
-          <div className="mcell"><div className="k">CPM</div><div className="v">{fmtBRL(m.cpm)}</div></div>
-          <div className="mcell"><div className="k">Tx. Conversão</div><div className="v">{pct(m.txConv)}</div></div>
-          <div className="mcell"><div className="k">Margem líq.</div><div className="v">{pct(m.margemLiq, 0)}</div></div>
-          <div className="mcell"><div className="k">Status</div><div className="v" style={{ color: statusCor }}>{statusGlobal}</div></div>
-        </div>
-
-        <div className="cols">
-          {/* DIAGNÓSTICO */}
-          <div className="panel">
-            <div className="ptitle">Diagnóstico automático</div>
-            {diag.map((row, i) => (
-              <div className="diagrow" key={i}>
-                <div className="led" style={{ background: row[0] === "ok" ? "var(--green)" : row[0] === "warn" ? "var(--amber)" : "var(--red)", boxShadow: `0 0 8px ${row[0] === "ok" ? "var(--green)" : row[0] === "warn" ? "var(--amber)" : "var(--red)"}` }} />
-                <div>
-                  <div className="tt">{row[1]}</div>
-                  <div className="dd">{row[2]}</div>
+              <div className="top">
+                <div className="brand">
+                  <div className="dot" />
+                  <div>
+                    <h1>Central de <span>Tráfego</span></h1>
+                    <div className="sub">PAINEL DE PERFORMANCE EM TEMPO REAL</div>
+                  </div>
+                </div>
+                <div className="clock">
+                  <div className="t mono">{clock.toLocaleTimeString("pt-BR")}</div>
+                  <div className="d">{clock.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}</div>
                 </div>
               </div>
-            ))}
-          </div>
 
-          {/* SIMULADOR */}
-          <div className="panel">
-            <div className="ptitle">Simulador de escala</div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-              <span style={{ color: "var(--muted)" }}>Aumentar orçamento</span>
-              <span className="mono" style={{ color: "var(--accent)", fontWeight: 700 }}>+{escala}%</span>
-            </div>
-            <input className="slider" type="range" min="0" max="300" step="10" value={escala} onChange={(e) => setEscala(parseInt(e.target.value))} />
-            <div className="simgrid">
-              <div className="simbox"><div className="k">Novo investimento</div><div className="v">{fmtBRL(sim.invN)}</div></div>
-              <div className="simbox"><div className="k">Vendas projetadas</div><div className="v">{fmtNum(sim.convN, 0)}</div></div>
-              <div className="simbox"><div className="k">Faturamento proj.</div><div className="v">{fmtBRL(sim.fatN)}</div></div>
-              <div className="simbox"><div className="k">Lucro projetado</div><div className="v" style={{ color: sim.lucroN >= 0 ? "var(--green)" : "var(--red)" }}>{fmtBRL(sim.lucroN)}</div></div>
-            </div>
-            <div className="note">Projeção considera perda natural de eficiência ao escalar (CPA sobe conforme o orçamento cresce). Use como direção, não como garantia.</div>
-          </div>
-        </div>
+              <div className="grid">
+                <div className="panel">
+                  <div className="ptitle">Dados da campanha</div>
+                  <div className="selectrow">
+                    {Object.entries(NICHOS).map(([k, v]) => (
+                      <div key={k} className={`chip ${nicho === k ? "on" : ""}`} onClick={() => setNicho(k)}>{v.label}</div>
+                    ))}
+                  </div>
+                  <div className="inputs">
+                    <div className="field"><label>Investimento (R$)</label><input value={d.investimento} onChange={set("investimento")} inputMode="decimal" /></div>
+                    <div className="field"><label>Faturamento (R$)</label><input value={d.faturamento} onChange={set("faturamento")} inputMode="decimal" /></div>
+                    <div className="field"><label>Impressões</label><input value={d.impressoes} onChange={set("impressoes")} inputMode="decimal" /></div>
+                    <div className="field"><label>Cliques</label><input value={d.cliques} onChange={set("cliques")} inputMode="decimal" /></div>
+                    <div className="field"><label>Vendas / Conversões</label><input value={d.conversoes} onChange={set("conversoes")} inputMode="decimal" /></div>
+                    <div className="field"><label>Margem de contrib. (%)</label><input value={d.margem} onChange={set("margem")} inputMode="decimal" /></div>
+                  </div>
+                </div>
 
-        {/* IA */}
-        <div className="panel">
-          <div className="ptitle">Análise por IA</div>
-          <button className="btn" onClick={analisarIA} disabled={ia.loading}>
-            {ia.loading ? "Analisando campanha..." : "Analisar esta campanha com IA"}
-          </button>
-          {ia.err && <div className="iaerr">{ia.err}</div>}
-          {ia.text && <div className="iabox">{ia.text}</div>}
-          {!ia.text && !ia.err && !ia.loading && <div className="note">Clique para receber diagnóstico, gargalos e ações práticas baseados nos números acima.</div>}
-        </div>
-      </div>
-    </div>
-  );
-}
+                <div className="bigcards">
+                  <div className="big">
+                    <div className="k">ROAS</div>
+                    <div className="v" style={{ color: m.roas >= m.roasEquilibrio ? "var(--green)" : "var(--red)" }}>{fmtNum(m.roas)}x</div>
+                    <div className="sub2">Equilíbrio: {fmtNum(m.roasEquilibrio)}x</div>
+                    <span style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: m.roas >= m.roasEquilibrio ? "var(--green)" : "var(--red)" }} />
+                  </div>
+                  <div className="big">
+                    <div className="k">ROI</div>
+                    <div className="v" style={{ color: m.roi >= 0 ? "var(--green)" : "var(--red)" }}>{pct(m.roi, 0)}</div>
+                    <div className="sub2">Retorno sobre investimento</div>
+                    <span style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: m.roi >= 0 ? "var(--green)" : "var(--red)" }} />
+                  </div>
+                  <div className="big">
+                    <div className="k">Lucro real</div>
+                    <div className="v" style={{ color: statusCor }}>{fmtBRL(m.lucro)}</div>
+                    <div className="sub2">Já com margem aplicada</div>
+                    <span style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: statusCor }} />
+                  </div>
+                  <div className="big">
+                    <div className="k">CPA (custo/venda)</div>
+                    <div className="v">{fmtBRL(m.cpa)}</div>
+                    <div className="sub2">Ticket médio: {fmtBRL(m.ticket)}</div>
+                    <span style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: "var(--accent)" }} />
+                  </div>
+                </div>
+
+                <div className="mini">
+                  <div className="mcell"><div className="k">CTR</div><div className="v">{pct(m.ctr)}</div></div>
+                  <div className="mcell"><div className="k">CPC</div><div className="v">{fmtBRL(m.cpc)}</div></div>
+                  <div className="mcell"><div className="k">CPM</div><div className="v">{fmtBRL(m.cpm)}</div></div>
+                  <div className="mcell"><div className="k">Tx. Conversão</div><div className="v">{pct(m.txConv)}</div></div>
+                  <div className="mcell"><div className="k">Margem líq.</div><div className="v">{pct(m.margemLiq, 0)}</div></div>
+                  <div className="mcell"><div className="k">Status</div><div className="v" style={{ color: statusCor }}>{statusGlobal}</div></div>
+                </div>
+
+                <div className="cols">
+                  <div className="panel">
+                    <div className="ptitle">Diagnóstico automático</div>
+                    {diag.map((row, i) => (
+                      <div className="diagrow" key={i}>
+                        <div className="led" style={{ background: row[0] === "ok" ? "var(--green)" : row[0] === "warn" ? "var(--amber)" : "var(--red)", boxShadow: `0 0 8px ${row[0] === "ok" ? "var(--green)" : row[0] === "warn" ? "var(--amber)" : "var(--red)"}` }} />
+                        <div>
+                          <div className="tt">{row[1]}</div>
+                          <div className="dd">{row[2]}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="panel">
+                    <div className="ptitle">Simulador de escala</div>
+                    <div style={{ display: "flex", justifycontent: "space-between", fontSize: 13 }}>
+                      <span style={{ color: "var(--muted)" }}>Aumentar orçamento</span>
+                      <span className="mono" style={{ color: "var(--accent)", fontWeight: 700 }}>+{escala}%</span>
+                    </div>
+                    <input className="slider" type="range" min="0" max="300" step="10" value={escala} onChange={(e) => setEscala(parseInt(e.target.value))} />
+                    <div className="simgrid">
+                      <div className="simbox"><div className="k">Novo investimento</div><div className="v">{fmtBRL(sim.invN)}</div></div>
+                      <div className="simbox"><div className="k">Vendas projetadas</div><div className="v">{fmtNum(sim.convN, 0)}</div></div>
+                      <div className="simbox"><div className="k">Faturamento proj.</div><div className="v">{fmtBRL(sim.fatN)}</div></div>
+                      <div className="simbox"><div className="k">Lucro projetado</div><div className="v" style={{ color: sim.lucroN >= 0 ? "var(--green)" : "var(--red)" }}>{fmtBRL(sim.lucroN)}</div></div>
+                    </div>
+                    <div className="note">Projeção considera perda natural de eficiência ao escalar (CPA sobe conforme o orçamento cresce). Use como direção, não como garantia.</div>
+                  </div>
+                </div>
+
+                <div className="panel">
+                  <div className="ptitle">Análise por IA</div>
+                  <button className="btn" onClick={analisarIA} disabled={ia.loading}>
+                    {ia.loading ? "Analisando campanha..." : "Analisar esta campanha"}
+                  </button>
+                  {ia.err && <div className="iaerr">{ia.err}</div>}
+                  {ia.text && <div className="iabox">{ia.text}</div>}
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
