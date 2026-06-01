@@ -15,11 +15,9 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
 
-        // ---------- Helpers ----------
-        const fmtBRL = (n) =>
-          isFinite(n) ? n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 }) : "—";
-        const fmtNum = (n, d = 2) => (isFinite(n) ? n.toLocaleString("pt-BR", { maximumFractionDigits: d, minimumFractionDigits: 0 }) : "—");
-        const pct = (n, d = 2) => (isFinite(n) ? `${n.toLocaleString("pt-BR", { maximumFractionDigits: d })}%` : "—");
+        const fmtBRL = (n) => isFinite(n) ? n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 }) : "—";
+        const fmtNum = (n, d = 2) => isFinite(n) ? n.toLocaleString("pt-BR", { maximumFractionDigits: d, minimumFractionDigits: 0 }) : "—";
+        const pct = (n, d = 2) => isFinite(n) ? `${n.toLocaleString("pt-BR", { maximumFractionDigits: d })}%` : "—";
         const num = (v) => {
           const x = parseFloat(String(v).replace(/\./g, "").replace(",", "."));
           return isNaN(x) ? 0 : x;
@@ -83,15 +81,15 @@
           const diag = useMemo(() => {
             const b = NICHOS[nicho];
             const out = [];
-            if (m.roas >= m.roasEquilibrio * 1.2) out.push(["ok", "Lucrativa", `ROAS ${fmtNum(m.roas)}x acima do ponto de equilíbrio (${fmtNum(m.roasEquilibrio)}x). Pode escalar.`]);
-            else if (m.roas >= m.roasEquilibrio) out.push(["warn", "Empatando", `ROAS perto do equilíbrio (${fmtNum(m.roasEquilibrio)}x). Otimize antes de escalar.`]);
-            else out.push(["bad", "No prejuízo", `ROAS abaixo de ${fmtNum(m.roasEquilibrio)}x necessários pra empatar. Revise oferta/segmentação.`]);
+            if (m.roas >= m.roasEquilibrio * 1.2) out.push(["ok", "Lucrativa", "ROAS acima do ponto de equilíbrio. Pode escalar."]);
+            else if (m.roas >= m.roasEquilibrio) out.push(["warn", "Empatando", "ROAS perto do equilíbrio. Otimize antes de escalar."]);
+            else out.push(["bad", "No prejuízo", "ROAS abaixo do necessário para empatar. Revise oferta e segmentação."]);
             
-            if (m.ctr >= b.ctrBom) out.push(["ok", "Criativo atraindo", `CTR ${pct(m.ctr)} (meta ≥ ${b.ctrBom}%). O anúncio prende atenção.`]);
-            else out.push(["warn", "Criativo fraco", `CTR ${pct(m.ctr)} abaixo de ${b.ctrBom}%. Teste novos criativos/ganchos.`]);
+            if (m.ctr >= b.ctrBom) out.push(["ok", "Criativo atraindo", "O anúncio prende atenção e está acima da média."]);
+            else out.push(["warn", "Criativo fraco", "CTR abaixo da meta recomendada. Teste novos ganchos."]);
             
-            if (m.txConv >= b.convBom) out.push(["ok", "Página convertendo", `Taxa de conversão ${pct(m.txConv)} (meta ≥ ${b.convBom}%).`]);
-            else out.push(["warn", "Conversão baixa", `Taxa ${pct(m.txConv)} abaixo de ${b.convBom}%. Gargalo está na página/oferta, não no anúncio.`]);
+            if (m.txConv >= b.convBom) out.push(["ok", "Página convertendo", "Boa taxa de conversão no destino final."]);
+            else out.push(["warn", "Conversão baixa", "Gargalo pode estar na experiência da página ou oferta."]);
             return out;
           }, [m, nicho]);
 
@@ -105,46 +103,27 @@
             return { invN, convN, fatN, lucroN, cpaN };
           }, [escala, m]);
 
-          async function analisarIA() {
-            setIa({ loading: true, text: "", err: "" });
-            const resumo = `Nicho: ${NICHOS[nicho].label} | Investimento: ${fmtBRL(m.inv)} | Faturamento: ${fmtBRL(m.fat)} | Vendas: ${m.conv} | ROAS: ${fmtNum(m.roas)}x | Lucro real: ${fmtBRL(m.lucro)} | CTR: ${pct(m.ctr)} | Tx. Conversão: ${pct(m.txConv)}`;
-
-            try {
-              // Ajustado para uma rota genérica ou aviso, já que a chave de API não deve ficar exposta no HTML público
-              setIa({ loading: false, text: "Para rodar a inteligência artificial com segurança em um site público sem vazar sua chave de API, recomendo integrar através de uma Serverless Function na Vercel. Mas todos os cálculos locais e simuladores acima já estão 100% operacionais!", err: "" });
-            } catch (e) {
-              setIa({ loading: false, text: "", err: "Falha ao conectar com a IA." });
-            }
-          }
-
           const statusGlobal = m.lucro > 0 ? "LUCRO" : m.lucro === 0 ? "NEUTRO" : "PREJUÍZO";
-          const statusCor = m.lucro > 0 ? "var(--green)" : m.lucro < 0 ? "var(--red)" : "var(--amber)";
+          const statusCor = m.lucro > 0 ? "#34d399" : m.lucro < 0 ? "#f87171" : "#fbbf24";
 
           return (
             <div className="wrap">
               <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@700;900&family=Manrope:wght@400;600;700&family=JetBrains+Mono:wght@700&display=swap');
                 * { box-sizing: border-box; margin: 0; padding: 0; }
                 :root{
                   --bg:#070a0c; --panel:#0e1418; --panel2:#121a1f; --line:#1d272e;
                   --txt:#e7eef0; --muted:#7e8d93; --green:#34d399; --amber:#fbbf24; --red:#f87171; --accent:#34d399;
                 }
+                body { background: var(--bg); }
                 .wrap{
-                  font-family:'Manrope',sans-serif; background:var(--bg); color:var(--txt);
-                  min-height:100vh; padding:22px; position:relative; overflow-x:hidden;
-                  background-image:
-                    radial-gradient(circle at 15% 0%, rgba(52,211,153,.08), transparent 40%),
-                    radial-gradient(circle at 100% 100%, rgba(52,211,153,.05), transparent 45%),
-                    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
-                  background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+                  font-family:'Manrope',sans-serif; color:var(--txt);
+                  min-height:100vh; padding:22px; position:relative;
                 }
                 .mono{ font-family:'JetBrains Mono',monospace; }
-                .arch{ font-family:'Archivo',sans-serif; }
                 .top{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin-bottom:22px; border-bottom:1px solid var(--line); padding-bottom:18px;}
                 .brand{ display:flex; align-items:center; gap:12px;}
-                .dot{ width:11px; height:11px; border-radius:50%; background:var(--green); box-shadow:0 0 14px var(--green); animation:pulse 1.6s infinite;}
-                @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+                .dot{ width:11px; height:11px; border-radius:50%; background:var(--green); box-shadow:0 0 14px var(--green); }
                 h1{ font-family:'Archivo'; font-weight:900; font-size:23px; letter-spacing:-.5px; text-transform:uppercase;}
                 h1 span{ color:var(--accent);}
                 .sub{ color:var(--muted); font-size:12px; letter-spacing:.5px;}
@@ -154,40 +133,30 @@
                 .grid{ display:grid; gap:14px;}
                 .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px;}
                 .ptitle{ font-family:'Archivo'; font-weight:700; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:14px; display:flex; align-items:center; gap:8px;}
-                .ptitle::before{ content:''; width:14px; height:2px; background:var(--accent);}
                 .inputs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px;}
-                .field label{ display:block; font-size:11px; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px;}
-                .field input{ width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--txt); padding:11px 12px; border-radius:9px; font-family:'JetBrains Mono'; font-size:15px; font-weight:700; transition:.15s;}
-                .field input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(52,211,153,.12);}
+                .field label{ display:block; font-size:11px; color:var(--muted); margin-bottom:6px; text-transform:uppercase;}
+                .field input{ width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--txt); padding:11px 12px; border-radius:9px; font-family:'JetBrains Mono'; font-size:15px; font-weight:700;}
                 .selectrow{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
-                .chip{ padding:8px 14px; border-radius:8px; border:1px solid var(--line); background:var(--panel2); color:var(--muted); font-size:12px; font-weight:600; cursor:pointer; transition:.15s;}
+                .chip{ padding:8px 14px; border-radius:8px; border:1px solid var(--line); background:var(--panel2); color:var(--muted); font-size:12px; font-weight:600; cursor:pointer;}
                 .chip.on{ background:var(--accent); color:#06120c; border-color:var(--accent); font-weight:700;}
                 .bigcards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px;}
                 .big{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; position:relative; overflow:hidden;}
-                .big .k{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px;}
-                .big .v{ font-family:'JetBrains Mono'; font-weight:700; font-size:30px; margin-top:8px; line-height:1;}
+                .big .k{ font-size:11px; color:var(--muted); text-transform:uppercase;}
+                .big .v{ font-family:'JetBrains Mono'; font-weight:700; font-size:26px; margin-top:8px; line-height:1;}
                 .big .sub2{ font-size:11px; color:var(--muted); margin-top:6px;}
                 .mini{ display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:1px; background:var(--line); border-radius:12px; overflow:hidden;}
                 .mcell{ background:var(--panel); padding:14px;}
-                .mcell .k{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;}
-                .mcell .v{ font-family:'JetBrains Mono'; font-weight:700; font-size:18px; margin-top:5px;}
+                .mcell .k{ font-size:10px; color:var(--muted); text-transform:uppercase;}
+                .mcell .v{ font-family:'JetBrains Mono'; font-weight:700; font-size:16px; margin-top:5px;}
                 .diagrow{ display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px solid var(--line);}
-                .diagrow:last-child{ border-bottom:none;}
                 .led{ width:10px; height:10px; border-radius:50%; margin-top:5px; flex:none;}
                 .diagrow .tt{ font-family:'Archivo'; font-weight:700; font-size:14px;}
-                .diagrow .dd{ font-size:12.5px; color:var(--muted); margin-top:2px; line-height:1.45;}
-                .slider{ width:100%; -webkit-appearance:none; height:6px; border-radius:6px; background:var(--line); margin:14px 0; outline:none;}
-                .slider::-webkit-slider-thumb{ -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 0 10px rgba(52,211,153,.6);}
+                .diagrow .dd{ font-size:12px; color:var(--muted); margin-top:2px;}
+                .slider{ width:100%; height:6px; border-radius:6px; background:var(--line); margin:14px 0; outline:none;}
                 .simgrid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;}
                 .simbox{ background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:14px;}
-                .simbox .k{ font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;}
-                .simbox .v{ font-family:'JetBrains Mono'; font-weight:700; font-size:19px; margin-top:5px;}
-                .btn{ width:100%; background:var(--accent); color:#06120c; border:none; padding:14px; border-radius:10px; font-family:'Archivo'; font-weight:900; font-size:14px; letter-spacing:.5px; cursor:pointer; text-transform:uppercase; transition:.15s;}
-                .btn:hover{ filter:brightness(1.08);}
-                .btn:disabled{ opacity:.55; cursor:wait;}
-                .iabox{ margin-top:14px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:16px; white-space:pre-wrap; font-size:13.5px; line-height:1.6; color:var(--txt);}
-                .iaerr{ color:var(--red); font-size:13px; margin-top:10px;}
-                .note{ font-size:11.5px; color:var(--muted); margin-top:12px; line-height:1.5;}
+                .simbox .k{ font-size:10px; color:var(--muted); text-transform:uppercase;}
+                .simbox .v{ font-family:'JetBrains Mono'; font-weight:700; font-size:17px; margin-top:5px;}
                 .cols{ display:grid; grid-template-columns:1fr 1fr; gap:14px;}
                 @media(max-width:760px){ .cols{ grid-template-columns:1fr;} .simgrid{ grid-template-columns:1fr;} }
               `}</style>
@@ -215,12 +184,12 @@
                     ))}
                   </div>
                   <div className="inputs">
-                    <div className="field"><label>Investimento (R$)</label><input value={d.investimento} onChange={set("investimento")} inputMode="decimal" /></div>
-                    <div className="field"><label>Faturamento (R$)</label><input value={d.faturamento} onChange={set("faturamento")} inputMode="decimal" /></div>
-                    <div className="field"><label>Impressões</label><input value={d.impressoes} onChange={set("impressoes")} inputMode="decimal" /></div>
-                    <div className="field"><label>Cliques</label><input value={d.cliques} onChange={set("cliques")} inputMode="decimal" /></div>
-                    <div className="field"><label>Vendas / Conversões</label><input value={d.conversoes} onChange={set("conversoes")} inputMode="decimal" /></div>
-                    <div className="field"><label>Margem de contrib. (%)</label><input value={d.margem} onChange={set("margem")} inputMode="decimal" /></div>
+                    <div className="field"><label>Investimento (R$)</label><input value={d.investimento} onChange={set("investimento")} /></div>
+                    <div className="field"><label>Faturamento (R$)</label><input value={d.faturamento} onChange={set("faturamento")} /></div>
+                    <div className="field"><label>Impressões</label><input value={d.impressoes} onChange={set("impressoes")} /></div>
+                    <div className="field"><label>Cliques</label><input value={d.cliques} onChange={set("cliques")} /></div>
+                    <div className="field"><label>Vendas</label><input value={d.conversoes} onChange={set("conversoes")} /></div>
+                    <div className="field"><label>Margem de contrib. (%)</label><input value={d.margem} onChange={set("margem")} /></div>
                   </div>
                 </div>
 
@@ -229,25 +198,21 @@
                     <div className="k">ROAS</div>
                     <div className="v" style={{ color: m.roas >= m.roasEquilibrio ? "var(--green)" : "var(--red)" }}>{fmtNum(m.roas)}x</div>
                     <div className="sub2">Equilíbrio: {fmtNum(m.roasEquilibrio)}x</div>
-                    <span style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: m.roas >= m.roasEquilibrio ? "var(--green)" : "var(--red)" }} />
                   </div>
                   <div className="big">
                     <div className="k">ROI</div>
                     <div className="v" style={{ color: m.roi >= 0 ? "var(--green)" : "var(--red)" }}>{pct(m.roi, 0)}</div>
                     <div className="sub2">Retorno sobre investimento</div>
-                    <span style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: m.roi >= 0 ? "var(--green)" : "var(--red)" }} />
                   </div>
                   <div className="big">
                     <div className="k">Lucro real</div>
                     <div className="v" style={{ color: statusCor }}>{fmtBRL(m.lucro)}</div>
-                    <div className="sub2">Já com margem aplicada</div>
-                    <span style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: statusCor }} />
+                    <div className="sub2">Margem de contribuição aplicada</div>
                   </div>
                   <div className="big">
                     <div className="k">CPA (custo/venda)</div>
                     <div className="v">{fmtBRL(m.cpa)}</div>
                     <div className="sub2">Ticket médio: {fmtBRL(m.ticket)}</div>
-                    <span style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: "var(--accent)" }} />
                   </div>
                 </div>
 
@@ -265,7 +230,7 @@
                     <div className="ptitle">Diagnóstico automático</div>
                     {diag.map((row, i) => (
                       <div className="diagrow" key={i}>
-                        <div className="led" style={{ background: row[0] === "ok" ? "var(--green)" : row[0] === "warn" ? "var(--amber)" : "var(--red)", boxShadow: `0 0 8px ${row[0] === "ok" ? "var(--green)" : row[0] === "warn" ? "var(--amber)" : "var(--red)"}` }} />
+                        <div className="led" style={{ background: row[0] === "ok" ? "var(--green)" : row[0] === "warn" ? "var(--amber)" : "var(--red)" }} />
                         <div>
                           <div className="tt">{row[1]}</div>
                           <div className="dd">{row[2]}</div>
@@ -276,36 +241,6 @@
 
                   <div className="panel">
                     <div className="ptitle">Simulador de escala</div>
-                    <div style={{ display: "flex", justifycontent: "space-between", fontSize: 13 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
                       <span style={{ color: "var(--muted)" }}>Aumentar orçamento</span>
-                      <span className="mono" style={{ color: "var(--accent)", fontWeight: 700 }}>+{escala}%</span>
-                    </div>
-                    <input className="slider" type="range" min="0" max="300" step="10" value={escala} onChange={(e) => setEscala(parseInt(e.target.value))} />
-                    <div className="simgrid">
-                      <div className="simbox"><div className="k">Novo investimento</div><div className="v">{fmtBRL(sim.invN)}</div></div>
-                      <div className="simbox"><div className="k">Vendas projetadas</div><div className="v">{fmtNum(sim.convN, 0)}</div></div>
-                      <div className="simbox"><div className="k">Faturamento proj.</div><div className="v">{fmtBRL(sim.fatN)}</div></div>
-                      <div className="simbox"><div className="k">Lucro projetado</div><div className="v" style={{ color: sim.lucroN >= 0 ? "var(--green)" : "var(--red)" }}>{fmtBRL(sim.lucroN)}</div></div>
-                    </div>
-                    <div className="note">Projeção considera perda natural de eficiência ao escalar (CPA sobe conforme o orçamento cresce). Use como direção, não como garantia.</div>
-                  </div>
-                </div>
-
-                <div className="panel">
-                  <div className="ptitle">Análise por IA</div>
-                  <button className="btn" onClick={analisarIA} disabled={ia.loading}>
-                    {ia.loading ? "Analisando campanha..." : "Analisar esta campanha"}
-                  </button>
-                  {ia.err && <div className="iaerr">{ia.err}</div>}
-                  {ia.text && <div className="iabox">{ia.text}</div>}
-                </div>
-              </div>
-            </div>
-          );
-        }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+                      <span
